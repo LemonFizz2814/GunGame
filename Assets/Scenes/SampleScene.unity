@@ -7967,7 +7967,12 @@ MonoBehaviour:
   movePoint: {fileID: 838884733}
   allPlayers:
   - {fileID: 600392461}
-  allEnemies: []
+  - {fileID: 2134067402}
+  - {fileID: 1241148139}
+  allEnemies:
+  - {fileID: 1359756971}
+  - {fileID: 879715011}
+  - {fileID: 660413611}
   enemyInfoBox: {fileID: 1898973510}
   shootButton: {fileID: 473021991}
   enemyHealthSlider: {fileID: 1632456831}
@@ -11642,7 +11647,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerOverlayPrefab: {fileID: 6116901684633929300, guid: a639cefccaa29004c88585b0de574251, type: 3}
   overlayParent: {fileID: 1074660771}
+  cam: {fileID: 519420031}
   uiManager: {fileID: 749820471}
+  overlayScale: 6
 --- !u!1 &1102993156
 GameObject:
   m_ObjectHideFlags: 0

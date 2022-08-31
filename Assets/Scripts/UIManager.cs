@@ -497,6 +497,7 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
         List<GameObject> playersAndEnemies = new List<GameObject>();
         playersAndEnemies.AddRange(allPlayers);
         playersAndEnemies.AddRange(allEnemies);
+        print("playersAndEnemies " + playersAndEnemies.Count);
         return playersAndEnemies;
     }
 }
