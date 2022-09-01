@@ -68,7 +68,8 @@ public class OverlayScript : MonoBehaviour
 
             RectTransform rectTransform = overlayObjects[i].GetComponent<RectTransform>();
             rectTransform.localPosition = canvasPos;
-            rectTransform.localScale = new Vector3(cam.orthographicSize * overlayScale, cam.orthographicSize * overlayScale, cam.orthographicSize * overlayScale);
+            float scale = overlayScale / cam.orthographicSize;
+            rectTransform.sizeDelta = new Vector2(scale, scale);
         }
     }
 }

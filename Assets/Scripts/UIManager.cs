@@ -74,6 +74,8 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
 
     bool moveReady = false;
 
+    bool canInteract;
+
     private void Start()
     {
         playerInfoBox.SetActive(false);
@@ -410,7 +412,31 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
 
     public void EndTurnPressed()
     {
+        for (int i = 0; i < allPlayers.Count; i++)
+        {
+            Data playerData = allPlayers[i].GetComponent<Data>();
 
+            int armourIncrease = playerData.roundTokens * playerData.armourIncrease;
+            playerData.armour = Mathf.Clamp(playerData.armour + armourIncrease, 0, playerData.startingArmour);
+
+            playerData.roundTokens = playerData.startingTokens;
+        }
+
+        StartOfTurn();
+    }
+
+    void StartOfTurn()
+    {
+
+    }
+
+    public void PlayerDied(GameObject _gameObject)
+    {
+        allPlayers.Remove(_gameObject);
+    }
+    public void EnemyDied(GameObject _gameObject)
+    {
+        allEnemies.Remove(_gameObject);
     }
 
     public void CloseHitScreen()

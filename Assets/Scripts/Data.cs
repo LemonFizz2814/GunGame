@@ -17,13 +17,17 @@ public class Data : MonoBehaviour
     [NonSerialized]
     public int armour;
 
+    [NonSerialized]
+    public int armourIncrease = 5;
+
     public int frags;
     public int bandages;
     public int syringes;
     public int medpack;
 
     public int roundTokens;
-    const int startingTokens = 10;
+    [NonSerialized]
+    public int startingTokens = 10;
 
     public string playerName;
 
@@ -31,7 +35,7 @@ public class Data : MonoBehaviour
 
     public bool isDead;
 
-    [System.Serializable]
+    [Serializable]
     public struct StoredAmmunition
     {
         public WeaponComponent.Ammunition ammunition;

@@ -1040,7 +1040,7 @@ RectTransform:
   - {fileID: 649521376}
   - {fileID: 1230694861}
   m_Father: {fileID: 851275861}
-  m_RootOrder: 1
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
@@ -3317,7 +3317,7 @@ RectTransform:
   m_Children:
   - {fileID: 1145850061}
   m_Father: {fileID: 851275861}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
@@ -3650,7 +3650,7 @@ RectTransform:
   - {fileID: 1387343409}
   - {fileID: 809228422}
   m_Father: {fileID: 851275861}
-  m_RootOrder: 5
+  m_RootOrder: 6
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
@@ -7505,7 +7505,7 @@ RectTransform:
   - {fileID: 231013324}
   - {fileID: 1262787414}
   m_Father: {fileID: 851275861}
-  m_RootOrder: 3
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -9172,13 +9172,13 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1074660771}
   - {fileID: 276210482}
   - {fileID: 64353769}
   - {fileID: 1898973511}
   - {fileID: 714936032}
   - {fileID: 919726396}
   - {fileID: 335770507}
-  - {fileID: 1074660771}
   m_Father: {fileID: 749820470}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -9837,7 +9837,7 @@ RectTransform:
   - {fileID: 898725168}
   - {fileID: 6177740093462540995}
   m_Father: {fileID: 851275861}
-  m_RootOrder: 4
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
@@ -11626,7 +11626,7 @@ RectTransform:
   m_Children:
   - {fileID: 1396924927}
   m_Father: {fileID: 851275861}
-  m_RootOrder: 6
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -11649,7 +11649,7 @@ MonoBehaviour:
   overlayParent: {fileID: 1074660771}
   cam: {fileID: 519420031}
   uiManager: {fileID: 749820471}
-  overlayScale: 6
+  overlayScale: 937.5
 --- !u!1 &1102993156
 GameObject:
   m_ObjectHideFlags: 0
@@ -19789,7 +19789,7 @@ RectTransform:
   - {fileID: 1568283814}
   - {fileID: 1405197810}
   m_Father: {fileID: 851275861}
-  m_RootOrder: 2
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
