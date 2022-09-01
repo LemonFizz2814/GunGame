@@ -28,6 +28,10 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
     public List<GameObject> allPlayers;
     public List<GameObject> allEnemies;
 
+    [Header("UI Menu data")]
+    public GameObject gameUI;
+    public MenuManager menuUI;
+
     [Header("Enemy screen data")]
     public GameObject enemyInfoBox;
     public GameObject shootButton;
@@ -83,51 +87,56 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
         selectedWeaponScreen.SetActive(false);
         hitScreen.SetActive(false);
         moveSelectScreen.SetActive(false);
+
+        canInteract = true;
     }
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (canInteract)
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit))
+            if (Input.GetMouseButtonDown(0))
             {
-                //Debug.Log(hit.collider.gameObject.name);
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                RaycastHit hit;
 
-                Data data = hit.collider.gameObject.GetComponent<Data>();
-
-                if (data != null && !data.isDead)
+                if (Physics.Raycast(ray, out hit))
                 {
-                    switch (hit.collider.transform.tag)
+                    //Debug.Log(hit.collider.gameObject.name);
+
+                    Data data = hit.collider.gameObject.GetComponent<Data>();
+
+                    if (data != null && !data.isDead)
                     {
-                        case "Player":
-                            selectedPlayer = hit.collider.gameObject;
-                            MoveCameraToPoint(selectedPlayer);
-                            DisplayPlayerInfoScreen(selectedPlayer);
-                            break;
+                        switch (hit.collider.transform.tag)
+                        {
+                            case "Player":
+                                selectedPlayer = hit.collider.gameObject;
+                                MoveCameraToPoint(selectedPlayer);
+                                DisplayPlayerInfoScreen(selectedPlayer);
+                                break;
 
-                        case "Enemy":
-                            selectedTarget = hit.collider.gameObject;
-                            MoveCameraToPoint(selectedTarget);
-                            DisplayEnemyInfoScreen(data.startingHealth, data.health, data.startingArmour, data.armour, data.playerName, data.obj);
-                            break;
+                            case "Enemy":
+                                selectedTarget = hit.collider.gameObject;
+                                MoveCameraToPoint(selectedTarget);
+                                DisplayEnemyInfoScreen(data.startingHealth, data.health, data.startingArmour, data.armour, data.playerName, data.obj);
+                                break;
 
-                        default:
-                            //playerInfoBox.SetActive(false);
-                            //enemyInfoBox.SetActive(false);
-                            break;
+                            default:
+                                //playerInfoBox.SetActive(false);
+                                //enemyInfoBox.SetActive(false);
+                                break;
+                        }
                     }
-                }
-                else
-                {
-                    movePoint.transform.position = new Vector3(Mathf.Round(hit.point.x / 2) * 2, 0, Mathf.Round(hit.point.z / 2) * 2);
-
-                    if(moveReady)
+                    else
                     {
-                        int distance = (int)Vector3.Distance(movePoint.transform.position, selectedPlayer.transform.position);
-                        DisplayMoveSelectScreen(distance * 5, (int)Mathf.Ceil(distance));
+                        movePoint.transform.position = new Vector3(Mathf.Round(hit.point.x / 2) * 2, 0, Mathf.Round(hit.point.z / 2) * 2);
+
+                        if (moveReady)
+                        {
+                            int distance = (int)Vector3.Distance(movePoint.transform.position, selectedPlayer.transform.position);
+                            DisplayMoveSelectScreen(distance * 5, (int)Mathf.Ceil(distance));
+                        }
                     }
                 }
             }
@@ -422,12 +431,14 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
             playerData.roundTokens = playerData.startingTokens;
         }
 
+        canInteract = false;
+
         StartOfTurn();
     }
 
     void StartOfTurn()
     {
-
+        canInteract = true;
     }
 
     public void PlayerDied(GameObject _gameObject)
@@ -460,6 +471,19 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
     {
         secondaryReady = _isReady;
     }
+
+    public void MenuOpenPressed()
+    {
+        menuUI.OpenMenu();
+        gameUI.SetActive(false);
+        canInteract = false;
+    }
+    public void ExitedMenu()
+    {
+        canInteract = true;
+        gameUI.SetActive(true);
+    }
+
     public void PrimaryButtonPressed()
     {
         Data data = selectedPlayer.GetComponent<Data>();

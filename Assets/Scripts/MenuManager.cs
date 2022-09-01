@@ -12,11 +12,12 @@ public class MenuManager : MonoBehaviour
     public TextMeshProUGUI titleText;
     public Image weaponIcon;
     public WeaponComponent weaponComponent;
+    public UIManager uiManager;
 
     [Header("Menus")]
     public GameObject weaponsSelectionMenu;
     public GameObject weaponInfoMenu;
-    public GameObject gunMenu;
+    public GameObject weaponCategoryMenu;
 
     [Header("Prefabs")]
     public GameObject weaponButtonPrefab;
@@ -41,7 +42,7 @@ public class MenuManager : MonoBehaviour
     {
         weaponsSelectionMenu.SetActive(false);
         weaponInfoMenu.SetActive(true);
-        gunMenu.SetActive(false);
+        weaponCategoryMenu.SetActive(false);
 
         WeaponComponent.WeaponStats weaponStats = weaponComponent.weaponStats[_weaponNum];
 
@@ -95,7 +96,7 @@ public class MenuManager : MonoBehaviour
     {
         weaponsSelectionMenu.SetActive(true);
         weaponInfoMenu.SetActive(false);
-        gunMenu.SetActive(false);
+        weaponCategoryMenu.SetActive(false);
 
         foreach (Transform child in weaponScrollView.transform)
         {
@@ -152,13 +153,13 @@ public class MenuManager : MonoBehaviour
     {
         weaponsSelectionMenu.SetActive(true);
         weaponInfoMenu.SetActive(false);
-        gunMenu.SetActive(false);
+        weaponCategoryMenu.SetActive(false);
     }
     public void BackToGunMenuPressed()
     {
         weaponsSelectionMenu.SetActive(false);
         weaponInfoMenu.SetActive(false);
-        gunMenu.SetActive(true);
+        weaponCategoryMenu.SetActive(true);
     }
 
     public void WeaponPressed(GameObject _buttonObj)
@@ -171,6 +172,14 @@ public class MenuManager : MonoBehaviour
     {
         weaponsSelectionMenu.SetActive(false);
         weaponInfoMenu.SetActive(false);
-        gunMenu.SetActive(false);
+        weaponCategoryMenu.SetActive(false);
+        uiManager.ExitedMenu();
+    }
+
+    public void OpenMenu()
+    {
+        weaponsSelectionMenu.SetActive(false);
+        weaponInfoMenu.SetActive(false);
+        weaponCategoryMenu.SetActive(true);
     }
 }
