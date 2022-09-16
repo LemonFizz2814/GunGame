@@ -6,13 +6,13 @@ using TMPro;
 
 public class MenuManager : MonoBehaviour
 {
-    public Transform lineParent;
     public RectTransform weaponScrollView;
     public TextMeshProUGUI informationText;
     public TextMeshProUGUI titleText;
     public Image weaponIcon;
     public WeaponComponent weaponComponent;
     public UIManager uiManager;
+    public AccuracyGraph accuracyGraph;
 
     [Header("Menus")]
     public GameObject weaponsSelectionMenu;
@@ -26,16 +26,11 @@ public class MenuManager : MonoBehaviour
     public float Xdist;
     public float Ydist;
 
-    [Header("Graph data")]
-    public float graphX;
-    public float graphY;
-    public float lineThickness;
-
     private void Start()
     {
         //DisplayWeaponInfo(0);
         //DisplayWeaponList();
-        BackToGunMenuPressed();
+        //BackToGunMenuPressed();
     }
 
     void DisplayWeaponInfo(int _weaponNum)
@@ -60,36 +55,7 @@ public class MenuManager : MonoBehaviour
 
         weaponIcon.sprite = weaponStats.icon;
 
-        CreateGraph(weaponStats);
-    }
-
-    void CreateGraph(WeaponComponent.WeaponStats _weaponStats)
-    {
-        foreach(Transform child in lineParent)
-        {
-            Destroy(child.gameObject);
-        }
-
-        for (int i = 0; i < _weaponStats.accuracy.Length - 1; i++)
-        {
-            Vector2 positionA = new Vector3((_weaponStats.accuracy[i].distance * graphX) + 3.0f, (_weaponStats.accuracy[i].accuracy * graphY) + 3.0f);
-            Vector2 positionB = new Vector3((_weaponStats.accuracy[i + 1].distance * graphX) + 3.0f, (_weaponStats.accuracy[i + 1].accuracy * graphY) + 3.0f);
-
-            GameObject lineObj = new GameObject("lineObj" + i, typeof(Image));
-            lineObj.transform.SetParent(lineParent);
-
-            Vector2 dir = (positionA - positionB).normalized;
-            //float angle = Vector2.Angle(positionA, positionB);
-            float angle = Mathf.Atan2(positionB.y - positionA.y, positionB.x - positionA.x) * Mathf.Rad2Deg;
-            float distance = Vector3.Distance(positionA, positionB);
-
-            RectTransform rectTransform = lineObj.transform.GetComponent<RectTransform>();
-            rectTransform.anchorMin = new Vector2(0, 0);
-            rectTransform.anchorMax = new Vector2(0, 0);
-            rectTransform.sizeDelta = new Vector2(distance, lineThickness);
-            rectTransform.anchoredPosition =  positionA + dir * distance * -0.5f;
-            rectTransform.localEulerAngles = new Vector3(0, 0, angle);
-        }
+        accuracyGraph.CreateGraph(weaponStats);
     }
 
     void DisplayWeaponList(WeaponComponent.GunType _gunType)
@@ -120,7 +86,7 @@ public class MenuManager : MonoBehaviour
             GameObject weaponButtonObj = Instantiate(weaponButtonPrefab);
             weaponButtonObj.transform.SetParent(weaponScrollView.transform);
 
-            weaponButtonObj.name = weaponList[i].number + "WeaponButton";
+            weaponButtonObj.name = "WeaponButton" + weaponList[i].number;
             weaponButtonObj.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = weaponList[i].name;
             weaponButtonObj.transform.GetChild(1).GetComponent<Image>().sprite = weaponList[i].icon;
 
@@ -164,7 +130,8 @@ public class MenuManager : MonoBehaviour
 
     public void WeaponPressed(GameObject _buttonObj)
     {
-        int weaponNum = int.Parse(_buttonObj.name.Substring(0, 1));
+        int weaponNum = int.Parse(_buttonObj.name.Substring(12, _buttonObj.name.Length - 12));
+
         DisplayWeaponInfo(weaponNum);
     }
 

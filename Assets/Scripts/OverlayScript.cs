@@ -38,24 +38,44 @@ public class OverlayScript : MonoBehaviour
 
         for(int i = 0; i < playersAndEnemies.Count; i++)
         {
-            GameObject overlayObj = Instantiate(playerOverlayPrefab);
-            overlayObj.transform.SetParent(overlayParent);
+            GenerateOverlay(i);
+        }
+    }
 
+    void GenerateOverlay(int _i)
+    {
+        GameObject overlayObj = Instantiate(playerOverlayPrefab);
+        overlayObj.transform.SetParent(overlayParent);
+
+        Data data = playersAndEnemies[_i].GetComponent<Data>();
+
+        UpdateValues(overlayObj, data);
+
+        overlayObjects.Add(overlayObj);
+    }
+
+    public void UpdateOverlayDisplays()
+    {
+        for (int i = 0; i < overlayObjects.Count; i++)
+        {
             Data data = playersAndEnemies[i].GetComponent<Data>();
 
-            // health
-            overlayObj.transform.GetChild(0).GetComponent<Slider>().maxValue = data.startingHealth;
-            overlayObj.transform.GetChild(0).GetComponent<Slider>().value = data.startingHealth;
-             
-            // armour
-            overlayObj.transform.GetChild(1).GetComponent<Slider>().maxValue = data.startingArmour;
-            overlayObj.transform.GetChild(1).GetComponent<Slider>().value = data.startingArmour;
-
-            // token text
-            overlayObj.transform.GetChild(2).GetComponent<TextMeshProUGUI>().text = "" + ((data.roundTokens == 0) ? "" : data.roundTokens);
-
-            overlayObjects.Add(overlayObj);
+            UpdateValues(overlayObjects[i], data);
         }
+    }
+
+    void UpdateValues(GameObject _overlayObj, Data _data)
+    {
+        // health
+        _overlayObj.transform.GetChild(0).GetComponent<Slider>().maxValue = _data.startingHealth;
+        _overlayObj.transform.GetChild(0).GetComponent<Slider>().value = _data.startingHealth;
+
+        // armour
+        _overlayObj.transform.GetChild(1).GetComponent<Slider>().maxValue = _data.startingArmour;
+        _overlayObj.transform.GetChild(1).GetComponent<Slider>().value = _data.startingArmour;
+
+        // token text
+        _overlayObj.transform.GetChild(2).GetComponent<TextMeshProUGUI>().text = "" + ((_data.roundTokens == -1) ? "" : _data.roundTokens);
     }
 
     void DisplayPlayerOverlay()
@@ -71,5 +91,18 @@ public class OverlayScript : MonoBehaviour
             float scale = overlayScale / cam.orthographicSize;
             rectTransform.sizeDelta = new Vector2(scale, scale);
         }
+    }
+
+    public void AddedEnemy(GameObject _gameObject)
+    {
+        playersAndEnemies.Add(_gameObject);
+        GenerateOverlay(playersAndEnemies.Count - 1);
+    }
+    public void RemoveEnemy(GameObject _gameObject)
+    {
+        int index = overlayObjects.FindIndex(x => x.Equals(_gameObject));
+        Destroy(overlayObjects[index].gameObject);
+        overlayObjects.Remove(_gameObject);
+        playersAndEnemies.Remove(_gameObject);
     }
 }

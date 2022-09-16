@@ -148,7 +148,7 @@ public class CameraScript : MonoBehaviour
 
         if (_move)
         {
-            transform.position = prevPos;
+            //transform.position = prevPos;
         }
     }
 }

@@ -19,11 +19,14 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
     public int medkitHealthIncrease;
     public int medkitArmourIncrease;
 
-    public int displayHitsTimer;
+    public float distanceMultiplier;
+
+    public float displayHitsTimer;
 
     public CameraScript cameraScript;
 
     public GameObject movePoint;
+    public OverlayScript overlayScript;
 
     public List<GameObject> allPlayers;
     public List<GameObject> allEnemies;
@@ -35,10 +38,12 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
     [Header("Enemy screen data")]
     public GameObject enemyInfoBox;
     public GameObject shootButton;
+    public AccuracyGraph accuracyGraph;
     public Slider enemyHealthSlider;
     public Slider enemyArmourSlider;
     public TextMeshProUGUI distanceText;
     public TextMeshProUGUI accuracyText;
+    public TextMeshProUGUI estimatedDamageText;
     public TextMeshProUGUI enemyNameText;
     public TextMeshProUGUI enemyHealthText;
     public TextMeshProUGUI enemyArmourText;
@@ -80,6 +85,8 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
 
     bool canInteract;
 
+    int wallMask = 1 << 6;
+
     private void Start()
     {
         playerInfoBox.SetActive(false);
@@ -88,63 +95,72 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
         hitScreen.SetActive(false);
         moveSelectScreen.SetActive(false);
 
+        movePoint.SetActive(false);
+
         canInteract = true;
     }
 
     void Update()
     {
+    }
+    public void WorldButtonPressed()
+    {
+        //Debug.Log("world button pressed");
+
         if (canInteract)
         {
-            if (Input.GetMouseButtonDown(0))
+            //if (Input.GetMouseButtonDown(0))
+            //{
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit))
             {
-                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                RaycastHit hit;
+                //Debug.Log(hit.collider.gameObject.name);
 
-                if (Physics.Raycast(ray, out hit))
+                Data data = hit.collider.gameObject.GetComponent<Data>();
+
+                if (data != null && !data.isDead)
                 {
-                    //Debug.Log(hit.collider.gameObject.name);
-
-                    Data data = hit.collider.gameObject.GetComponent<Data>();
-
-                    if (data != null && !data.isDead)
+                    switch (hit.collider.transform.tag)
                     {
-                        switch (hit.collider.transform.tag)
-                        {
-                            case "Player":
-                                selectedPlayer = hit.collider.gameObject;
-                                MoveCameraToPoint(selectedPlayer);
-                                DisplayPlayerInfoScreen(selectedPlayer);
-                                break;
+                        case "Player":
+                            selectedPlayer = hit.collider.gameObject;
+                            MoveCameraToPoint(selectedPlayer);
+                            DisplayPlayerInfoScreen(selectedPlayer);
+                            //canInteract = false;
+                            break;
 
-                            case "Enemy":
-                                selectedTarget = hit.collider.gameObject;
-                                MoveCameraToPoint(selectedTarget);
-                                DisplayEnemyInfoScreen(data.startingHealth, data.health, data.startingArmour, data.armour, data.playerName, data.obj);
-                                break;
+                        case "Enemy":
+                            selectedTarget = hit.collider.gameObject;
+                            //canInteract = false;
+                            MoveCameraToPoint(selectedTarget);
+                            DisplayEnemyInfoScreen(data.startingHealth, data.health, data.startingArmour, data.armour, data.playerName, data.obj);
+                            break;
 
-                            default:
-                                //playerInfoBox.SetActive(false);
-                                //enemyInfoBox.SetActive(false);
-                                break;
-                        }
+                        default:
+                            //playerInfoBox.SetActive(false);
+                            //enemyInfoBox.SetActive(false);
+                            break;
                     }
-                    else
-                    {
-                        movePoint.transform.position = new Vector3(Mathf.Round(hit.point.x / 2) * 2, 0, Mathf.Round(hit.point.z / 2) * 2);
+                }
+                else
+                {
+                    movePoint.transform.position = new Vector3(Mathf.Round(hit.point.x / 2) * 2, 0, Mathf.Round(hit.point.z / 2) * 2);
 
-                        if (moveReady)
-                        {
-                            int distance = (int)Vector3.Distance(movePoint.transform.position, selectedPlayer.transform.position);
-                            DisplayMoveSelectScreen(distance * 5, (int)Mathf.Ceil(distance));
-                        }
+                    if (moveReady)
+                    {
+                        int distance = GetDistance(movePoint, selectedPlayer);
+                        DisplayMoveSelectScreen(distance, (int)Mathf.Ceil(distance / distanceMultiplier));
                     }
                 }
             }
+            //}
         }
     }
     public void OnPointerClick(PointerEventData eventData)
     {
-        //Debug.Log("Clicked: " + eventData.pointerCurrentRaycast.gameObject.name);
+        Debug.Log("OnPointerClick: " + eventData.pointerCurrentRaycast.gameObject.name);
     }
 
     public WeaponComponent.WeaponStats GetPrimaryOrSecondary()
@@ -169,12 +185,14 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
         selectedTarget = null;
         enemyInfoBox.SetActive(false);
         cameraScript.SetCanMove(true);
+        canInteract = true;
     }
     public void ClosePlayerPressed()
     {
         //selectedPlayer = null;
         playerInfoBox.SetActive(false);
         cameraScript.SetCanMove(true);
+        canInteract = true;
     }
 
     void MoveCameraToPoint(GameObject _obj)
@@ -188,50 +206,61 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
         Data targetData = selectedTarget.GetComponent<Data>();
         Data playerData = selectedPlayer.GetComponent<Data>();
 
-        List<string> hitData = new List<string>();
-        int healthDamage = 0;
-        int armourDamage = 0;
-
-        float distance = Mathf.Round(Vector3.Distance(selectedPlayer.transform.position, selectedTarget.transform.position));
-        float accuracy = GetAccuracy(distance);
-
-        for (int i = 0; i < GetPrimaryOrSecondary().bulletsPerShot; i++)
+        if (!CheckWallsBetweenTargets(selectedPlayer.transform, selectedTarget.transform))
         {
-            int rand = Random.Range(0, 100);
+            List<string> hitData = new List<string>();
+            List<int> healthDmgData = new List<int>();
+            List<int> armourDmgData = new List<int>();
+            int healthDamage = 0;
+            int armourDamage = 0;
 
-            if(rand <= accuracy)
+            float distance = GetDistance(selectedPlayer, selectedTarget);
+            float accuracy = GetAccuracy(distance);
+
+            for (int i = 0; i < GetPrimaryOrSecondary().bulletsPerShot; i++)
             {
-                int healthDmg = (targetData.armour > 0) ? (int)Mathf.Round(GetPrimaryOrSecondary().healthDamage / 2) : GetPrimaryOrSecondary().healthDamage;
+                int rand = Random.Range(0, 100);
 
-                armourDamage += GetPrimaryOrSecondary().armourDamage;
-                healthDamage += healthDmg;
-                hitData.Add("Hit -" + healthDmg + "/-" + GetPrimaryOrSecondary().armourDamage);
+                if (rand <= accuracy)
+                {
+                    int healthDmg = (targetData.armour > 0) ? (int)Mathf.Round(GetPrimaryOrSecondary().healthDamage / 2) : GetPrimaryOrSecondary().healthDamage;
+
+                    armourDamage += GetPrimaryOrSecondary().armourDamage;
+                    healthDamage += healthDmg;
+                    hitData.Add("Hit -" + healthDmg + "/-" + GetPrimaryOrSecondary().armourDamage);
+                    healthDmgData.Add(healthDmg);
+                    armourDmgData.Add(GetPrimaryOrSecondary().armourDamage);
+                }
+                else
+                {
+                    hitData.Add("Miss");
+                    healthDmgData.Add(0);
+                    armourDmgData.Add(0);
+                }
             }
-            else
+
+            int previousHealth = targetData.health;
+            int previousArmour = targetData.armour;
+            targetData.health = Mathf.Clamp(targetData.health - healthDamage, 0, targetData.startingHealth);
+            targetData.armour = Mathf.Clamp(targetData.armour - armourDamage, 0, targetData.startingArmour);
+            playerData.roundTokens -= GetPrimaryOrSecondary().useCost;
+
+            if (targetData.health <= 0)
             {
-                hitData.Add("Miss");
+                selectedTarget.GetComponent<EnemyScript>().EnemyKilled();
             }
+
+            overlayScript.UpdateOverlayDisplays();
+
+            //hitData.Sort();
+
+            CancelWeaponPressed();
+
+            DisplayHitScreen(targetData.startingHealth, targetData.health, targetData.startingArmour, targetData.armour, previousHealth, previousArmour, targetData.playerName, hitData, healthDamage, armourDamage, healthDmgData, armourDmgData);
         }
-
-        int previousHealth = targetData.health;
-        int previousArmour = targetData.armour;
-        targetData.health       = Mathf.Clamp(targetData.health - healthDamage, 0, targetData.startingHealth);
-        targetData.armour       = Mathf.Clamp(targetData.armour - armourDamage, 0, targetData.startingArmour);
-        playerData.roundTokens -= GetPrimaryOrSecondary().useCost;
-
-        if(targetData.health <= 0)
-        {
-            selectedTarget.GetComponent<EnemyScript>().EnemyKilled();
-        }
-
-        //hitData.Sort();
-
-        CancelWeaponPressed();
-
-        DisplayHitScreen(targetData.startingHealth, targetData.health, targetData.startingArmour, targetData.armour, previousHealth, previousArmour, targetData.playerName, hitData, healthDamage, armourDamage);
     }
 
-    void DisplayHitScreen(int _enemyHealthMax, int _enemyHealthValue, int _enemyArmourMax, int _enemyArmourValue, int _previousHealth, int _previousArmour, string _enemyName, List<string> _hitData, int _healthDamage, int _armourDamage)
+    void DisplayHitScreen(int _enemyHealthMax, int _enemyHealthValue, int _enemyArmourMax, int _enemyArmourValue, int _previousHealth, int _previousArmour, string _enemyName, List<string> _hitData, int _healthDamage, int _armourDamage, List<int> _healthDmgData, List<int> _armourDmgData)
     {
         hitScreen.SetActive(true);
         CloseEnemyPressed();
@@ -240,12 +269,12 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
 
         targetsHealthSlider.maxValue    = _enemyHealthMax;
         targetsHealthDamageSlider.maxValue = _enemyHealthMax;
-        targetsHealthSlider.value       = _enemyHealthValue;
+        targetsHealthSlider.value       = _previousHealth;//_enemyHealthValue;
         targetsHealthDamageSlider.value = _previousHealth;
 
         targetsArmourSlider.maxValue    = _enemyArmourMax;
         targetsArmourDamageSlider.maxValue = _enemyArmourMax;
-        targetsArmourSlider.value       = _enemyArmourValue;
+        targetsArmourSlider.value       = _previousArmour;//_enemyArmourValue;
         targetsArmourDamageSlider.value = _previousArmour;
 
         targetsHealthText.text          = _enemyHealthValue + "/" + _enemyHealthMax;
@@ -253,7 +282,7 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
 
         targetNameText.text             = _enemyName;
 
-        damageText.text                 = "Health dmg: " + _healthDamage + "\nArmour dmg: " + _armourDamage;
+        damageText.text                 = "Health dmg: " + 0 + "\nArmour dmg: " + 0;
 
         hitText.text = "";
         /*for (int i = 0; i < _hitData.Count; i++)
@@ -261,7 +290,42 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
             hitText.text += _hitData[i] + "\n";
         }*/
 
-        StartCoroutine(DisplayLoop(displayHitsTimer / _hitData.Count, 0, _hitData));
+        float time = displayHitsTimer / _hitData.Count;
+
+        StartCoroutine(DisplayLoop(time, 0, _hitData, _healthDmgData, _armourDmgData, 0, 0));
+    }
+
+    IEnumerator DisplayLoop(float _wait, int _i, List<string> _hitData, List<int> _healthDmgData, List<int> _armourDmgData, int _healthDmg, int _armourDmg)
+    {
+        hitText.text += _hitData[_i] + "\n";
+
+        targetsArmourSlider.value -= _healthDmgData[_i];
+        targetsHealthSlider.value -= _armourDmgData[_i];
+
+        _healthDmg += _healthDmgData[_i];
+        _armourDmg += _armourDmgData[_i];
+
+        damageText.text = "Health dmg: " + _healthDmg + "\nArmour dmg: " + _armourDmg;
+
+        if (_hitData[_i].Substring(0, 1).ToLower() == "h")
+        {
+            hitPoints.GetChild(Random.Range(0, hitPoints.childCount)).gameObject.SetActive(true);
+        }
+        else
+        {
+            missPoints.GetChild(Random.Range(0, missPoints.childCount)).gameObject.SetActive(true);
+        }
+
+        if (_i + 1 < _hitData.Count)
+        {
+            _i++;
+            yield return new WaitForSeconds(_wait);
+            StartCoroutine(DisplayLoop(_wait, _i, _hitData, _healthDmgData, _armourDmgData, _healthDmg, _armourDmg));
+        }
+        else
+        {
+            overlayScript.UpdateOverlayDisplays();
+        }
     }
 
     void ResetHitPoints()
@@ -273,27 +337,6 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
         foreach(Transform child in missPoints)
         {
             child.gameObject.SetActive(false);
-        }
-    }
-
-    IEnumerator DisplayLoop(float _wait, int _i, List<string> _hitData)
-    {
-        hitText.text += _hitData[_i] + "\n";
-
-        if(_hitData[_i].Substring(0, 1).ToLower() == "h")
-        {
-            hitPoints.GetChild(Random.Range(0, hitPoints.childCount)).gameObject.SetActive(true);
-        }
-        else
-        {
-            missPoints.GetChild(Random.Range(0, hitPoints.childCount)).gameObject.SetActive(true);
-        }
-
-        if (_i + 1 < _hitData.Count)
-        {
-            _i++;
-            yield return new WaitForSeconds(_wait);
-            StartCoroutine(DisplayLoop(_wait, _i, _hitData));
         }
     }
 
@@ -330,14 +373,23 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
 
         if (selectedPlayer != null)
         {
-            float distance = Mathf.Round(Vector3.Distance(selectedPlayer.transform.position, _enemyObj.transform.position));
-            distanceText.text = "Distance: " + distance;
-            accuracyText.text = (primaryReady || secondaryReady) ?  "Accuracy: " + GetAccuracy(distance) : "";
+            float distance = GetDistance(selectedPlayer, _enemyObj);
+            distanceText.text = "Distance: " + distance + "m";
+            accuracyText.text = "Accuracy: " + GetAccuracy(distance) + "%";
+
+            float estimatedHealthDmg = (GetPrimaryOrSecondary().healthDamage * GetPrimaryOrSecondary().bulletsPerShot) * (GetAccuracy(distance) / 100) / ((selectedTarget.GetComponent<Data>().armour > 0) ? 2 : 1);
+            float estimatedArmourDmg = (GetPrimaryOrSecondary().armourDamage * GetPrimaryOrSecondary().bulletsPerShot) * (GetAccuracy(distance) / 100);
+
+            estimatedDamageText.text = "Est Dmg: -" + estimatedHealthDmg + "/-" + estimatedArmourDmg;
+
+            accuracyGraph.CreateGraph(GetPrimaryOrSecondary());
+            accuracyGraph.CreateLine((int)distance);
         }
         else
         {
             distanceText.text = "";
             accuracyText.text = "";
+            estimatedDamageText.text = "";
         }
     }
 
@@ -376,6 +428,7 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
     {
         Data playerData = selectedPlayer.GetComponent<Data>();
         playerScreenUI.UpdateHealthAndArmour(playerData.startingHealth, playerData.health, playerData.startingArmour, playerData.armour);
+        overlayScript.UpdateOverlayDisplays();
     }
 
     public void DisplaySelectedWeaponScreen()
@@ -391,6 +444,30 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
         secondaryReady = false;
     }
 
+    public bool CheckWallsBetweenTargets(Transform _target1, Transform _target2)
+    {
+        Vector3 direction = (_target2.position - _target1.position).normalized;
+        float distance = Vector3.Distance(_target1.position, _target2.position);
+
+        RaycastHit[] rayHits;
+
+        Debug.DrawRay(_target1.position, direction * distance, Color.red, 5);
+        rayHits = Physics.RaycastAll(_target1.position, direction, distance, wallMask);
+
+        if (rayHits.Length > 0)
+        {
+            for (int i = 0; i < rayHits.Length; i++)
+            {
+                if (rayHits[i].transform.CompareTag("MetalWall"))// || rayHits[i].transform.CompareTag("WoodenWall"))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public void DisplayMoveSelectScreen(int _distance, int _cost)
     {
         moveSelectScreen.SetActive(true);
@@ -399,19 +476,28 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
     public void MovePressed(bool _activate)
     {
         moveReady = _activate;
-        playerInfoBox.SetActive(false);
+        playerInfoBox.SetActive(!_activate);
         moveSelectScreen.SetActive(_activate);
+
+        canInteract = _activate;
+        cameraScript.SetCanMove(_activate);
+        cameraScript.MoveCamera(selectedPlayer.transform.position);
+
+        movePoint.SetActive(_activate);
+        movePoint.transform.position = selectedPlayer.transform.position;
     }
     public void MovePlayerPressed()
     {
-        int distance = (int)Vector3.Distance(movePoint.transform.position, selectedPlayer.transform.position);
-        int cost = (int)Mathf.Ceil(distance);
+        int distance = GetDistance(movePoint, selectedPlayer);
+        int cost = (int)Mathf.Ceil(distance / distanceMultiplier);
 
         if (cost <= selectedPlayer.GetComponent<Data>().roundTokens)
         {
-            MovePressed(false);
             selectedPlayer.transform.position = movePoint.transform.position;
             selectedPlayer.GetComponent<Data>().roundTokens -= cost;
+            MovePressed(false);
+            overlayScript.UpdateOverlayDisplays();
+            canInteract = true;
         }
         else
         {
@@ -448,6 +534,7 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
     public void EnemyDied(GameObject _gameObject)
     {
         allEnemies.Remove(_gameObject);
+        overlayScript.RemoveEnemy(_gameObject);
     }
 
     public void CloseHitScreen()
@@ -477,11 +564,13 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
         menuUI.OpenMenu();
         gameUI.SetActive(false);
         canInteract = false;
+        cameraScript.SetCanMove(false);
     }
     public void ExitedMenu()
     {
         canInteract = true;
         gameUI.SetActive(true);
+        cameraScript.SetCanMove(true);
     }
 
     public void PrimaryButtonPressed()
@@ -515,6 +604,7 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
         {
             data.roundTokens -= bandageCost;
             data.health = Mathf.Clamp(bandageHealthIncrease, 0, data.startingHealth);
+            overlayScript.UpdateOverlayDisplays();
         }
         UpdatePlayerHealthAndArmour();
     }
@@ -526,6 +616,7 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
             data.roundTokens -= syringeCost;
             data.health = Mathf.Clamp(syringeHealthIncrease, 0, data.startingHealth);
             data.armour = Mathf.Clamp(syringeArmourIncrease, 0, data.startingArmour);
+            overlayScript.UpdateOverlayDisplays();
         }
         UpdatePlayerHealthAndArmour();
     }
@@ -538,8 +629,14 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
             data.roundTokens -= medkitCost;
             data.health = Mathf.Clamp(medkitHealthIncrease, 0, data.startingHealth);
             data.armour = Mathf.Clamp(medkitArmourIncrease, 0, data.startingArmour);
+            overlayScript.UpdateOverlayDisplays();
         }
         UpdatePlayerHealthAndArmour();
+    }
+
+    public int GetDistance(GameObject _objectA, GameObject _objectB)
+    {
+        return (int)(Mathf.Round(Vector3.Distance(_objectA.transform.position, _objectB.transform.position) / 2) * distanceMultiplier);
     }
 
     public List<GameObject> GetAllPeople()
@@ -547,7 +644,7 @@ public class UIManager : MonoBehaviour, IPointerClickHandler
         List<GameObject> playersAndEnemies = new List<GameObject>();
         playersAndEnemies.AddRange(allPlayers);
         playersAndEnemies.AddRange(allEnemies);
-        print("playersAndEnemies " + playersAndEnemies.Count);
+        //print("playersAndEnemies " + playersAndEnemies.Count);
         return playersAndEnemies;
     }
 }
